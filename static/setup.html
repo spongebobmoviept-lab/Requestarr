@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Requestarr Setup</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<style>
+  :root {
+    --bg: #101010;
+    --bg-elevated: #181818;
+    --bg-elevated-2: #1e1e1e;
+    --border: #2a2a2a;
+    --text: #ececec;
+    --text-muted: #96969b;
+    --gold: #d4af37;
+    --gold-bright: #e8c65a;
+    --gold-dim: #8a723098;
+    --red: #e05555;
+    --green: #4caf50;
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(ellipse at top, #1a1a1a 0%, #0c0c0c 60%);
+    color: var(--text);
+    font-family: "Inter", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    display: flex;
+    justify-content: center;
+    padding: 3rem 1.25rem;
+  }
+  .wrap { width: 100%; max-width: 640px; }
+  .brand { display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+  .brand-mark {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 2.75rem; height: 2.75rem; border-radius: 999px;
+    background: linear-gradient(160deg, var(--gold-bright), var(--gold));
+    color: #101010; font-weight: 800; font-size: 1.3rem;
+  }
+  .brand-name { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.02em; }
+  .tagline { text-align: center; color: var(--text-muted); margin: 0 0 2rem; }
+
+  .steps { display: flex; justify-content: center; gap: 0.4rem; margin-bottom: 2rem; flex-wrap: wrap; }
+  .step-dot {
+    display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem;
+    border-radius: 999px; font-size: 0.78rem; color: var(--text-muted);
+    background: var(--bg-elevated); border: 1px solid var(--border);
+  }
+  .step-dot.active { color: #101010; background: var(--gold); border-color: var(--gold); font-weight: 600; }
+  .step-dot.done { color: var(--gold); border-color: var(--gold-dim); }
+  .step-dot.clickable { cursor: pointer; }
+
+  .card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 2rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .card h2 { margin: 0 0 0.35rem; font-size: 1.25rem; }
+  .card > p.sub { margin: 0 0 1.5rem; color: var(--text-muted); font-size: 0.9rem; }
+
+  label { display: block; font-size: 0.82rem; color: var(--text-muted); margin: 1rem 0 0.35rem; }
+  label:first-of-type { margin-top: 0; }
+  input[type="text"], input[type="password"], input[type="url"], input[type="number"], select {
+    width: 100%; padding: 0.65rem 0.75rem; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg-elevated-2); color: var(--text);
+    font-size: 0.92rem;
+  }
+  input:focus, select:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+
+  .checkbox-row { display: flex; align-items: center; gap: 0.6rem; margin: 1rem 0; }
+  .checkbox-row input[type="checkbox"] { width: 1.1rem; height: 1.1rem; }
+  .checkbox-row label { margin: 0; color: var(--text); font-size: 0.92rem; }
+
+  .section-title { font-weight: 700; font-size: 0.95rem; margin: 1.4rem 0 0.5rem; padding-top: 1.1rem; border-top: 1px dashed var(--border); }
+  .section-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+  details.help { margin-top: 0.6rem; }
+  details.help summary { cursor: pointer; color: var(--gold); font-size: 0.82rem; user-select: none; }
+  details.help[open] summary { margin-bottom: 0.5rem; }
+  details.help .help-body {
+    background: var(--bg-elevated-2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.75rem 0.9rem; font-size: 0.83rem; color: var(--text-muted);
+  }
+  details.help ol { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+  details.help li { margin-bottom: 0.3rem; }
+  details.help code { background: #000; padding: 0.1rem 0.35rem; border-radius: 4px; color: var(--gold-bright); }
+
+  .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1.75rem; gap: 0.75rem; }
+  .btn {
+    border: none; border-radius: 8px; padding: 0.65rem 1.3rem; font-weight: 600;
+    font-size: 0.9rem; cursor: pointer; transition: transform 0.1s ease, opacity 0.15s ease;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-gold { background: linear-gradient(160deg, var(--gold-bright), var(--gold)); color: #101010; }
+  .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: #444; }
+
+  .result { margin-top: 0.9rem; font-size: 0.85rem; padding: 0.6rem 0.8rem; border-radius: 8px; display: none; }
+  .result.ok { display: block; background: rgba(76,175,80,0.12); color: var(--green); border: 1px solid rgba(76,175,80,0.35); }
+  .result.err { display: block; background: rgba(224,85,85,0.12); color: var(--red); border: 1px solid rgba(224,85,85,0.35); }
+
+  .profile-picks { margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px dashed var(--border); display: none; }
+  .profile-picks.show { display: block; }
+
+  .field-hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.3rem; }
+  .optional-badge { font-size: 0.7rem; color: var(--text-muted); border: 1px solid var(--border); border-radius: 999px; padding: 0.05rem 0.5rem; margin-left: 0.4rem; }
+
+  .summary-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .ok-tag { color: var(--green); }
+  .summary-row .skip-tag { color: var(--text-muted); }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .already-done { text-align: center; padding: 1rem 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <span class="brand-mark">R</span>
+    <span class="brand-name">Requestarr</span>
+  </div>
+  <p class="tagline" id="tagline">First-time setup — takes about two minutes.</p>
+
+  <div class="steps" id="stepper" style="display:none;"></div>
+
+  <div class="card">
+
+    <!-- Edit-mode login gate -->
+    <div id="login-gate" class="already-done" style="display:none;">
+      <h2>Log in to edit settings</h2>
+      <p class="sub">This instance is already set up. Log in to change anything.</p>
+      <label for="login-username">Username</label>
+      <input type="text" id="login-username" autocomplete="username" />
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" autocomplete="current-password" />
+      <div class="result" id="result-login"></div>
+      <div class="actions">
+        <span></span>
+        <button class="btn btn-gold" id="btn-login">Log In</button>
+      </div>
+    </div>
+
+    <div id="steps-container" style="display:none;">
+
+      <!-- Step 1: Admin login (first-run only) -->
+      <section class="step" data-step="1">
+        <h2>Create your login</h2>
+        <p class="sub">This is the username and password you'll use to come back and change settings later.</p>
+        <label for="admin-username">Username</label>
+        <input type="text" id="admin-username" autocomplete="username" value="admin" />
+        <label for="admin-password">Password</label>
+        <input type="password" id="admin-password" autocomplete="new-password" placeholder="At least 8 characters" />
+        <label for="admin-password-confirm">Confirm password</label>
+        <input type="password" id="admin-password-confirm" autocomplete="new-password" />
+        <div class="result" id="result-1"></div>
+        <div class="actions">
+          <span></span>
+          <button class="btn btn-gold" id="btn-1-next">Continue</button>
+        </div>
+      </section>
+
+      <!-- Step 2: Discord -->
+      <section class="step" data-step="2">
+        <h2>Connect Discord</h2>
+        <p class="sub">The bot token that lets Requestarr actually run in your server.</p>
+        <label for="discord-token">Bot token</label>
+        <input type="password" id="discord-token" placeholder="Paste your bot token" autocomplete="off" />
+        <label for="discord-guild">Server (guild) ID <span class="optional-badge">optional</span></label>
+        <input type="text" id="discord-guild" placeholder="For instant command sync — leave blank to sync globally (can take up to an hour)" />
+        <details class="help">
+          <summary>Where do I get a bot token?</summary>
+          <div class="help-body">
+            <ol>
+              <li>Go to the <strong>Discord Developer Portal</strong> → <strong>New Application</strong>.</li>
+              <li><strong>Bot</strong> tab → <strong>Reset Token</strong> → copy it (you won't see it again).</li>
+              <li><strong>OAuth2 → URL Generator</strong>: check <code>bot</code> and <code>applications.commands</code>, pick the permissions it needs, then open the generated URL to invite it to your server.</li>
+              <li>Enable Developer Mode in Discord (User Settings → Advanced), then right-click your server icon → <strong>Copy Server ID</strong> for the guild ID above.</li>
+            </ol>
+          </div>
+        </details>
+        <div class="result" id="result-2"></div>
+        <div class="actions">
+          <button class="btn btn-ghost" data-back="1">Back</button>
+          <button class="btn btn-gold" id="btn-2-next">Test &amp; Continue</button>
+        </div>
+      </section>
+
+      <!-- Step 3: Radarr -->
+      <section class="step" data-step="3">
+        <h2>Connect Radarr <span class="optional-badge">optional</span></h2>
+        <p class="sub">Powers <code>/movie</code>. Skip if you don't want movie requests.</p>
+        <label for="radarr-url">Radarr URL</label>
+        <input type="url" id="radarr-url" placeholder="http://192.168.1.50:7878" />
+        <label for="radarr-key">Radarr API key</label>
+        <input type="text" id="radarr-key" placeholder="API key" />
+        <details class="help">
+          <summary>Where's my Radarr API key?</summary>
+          <div class="help-body">Radarr → <strong>Settings</strong> → <strong>General</strong> → <strong>Security</strong> section.</div>
+        </details>
+        <div class="result" id="result-radarr"></div>
+
+        <div class="profile-picks" id="radarr-picks">
+          <label for="movie-profile">Quality profile for movie requests</label>
+          <select id="movie-profile"></select>
+          <label for="movie-root">Root folder for movie requests</label>
+          <select id="movie-root"></select>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-ghost" data-back="2">Back</button>
+          <button class="btn btn-gold" id="btn-3-next">Test &amp; Continue</button>
+        </div>
+      </section>
+
+      <!-- Step 4: Sonarr (TV + anime) -->
+      <section class="step" data-step="4">
+        <h2>Connect Sonarr <span class="optional-badge">optional</span></h2>
+        <p class="sub">Powers <code>/tv</code> and <code>/anime</code> — both use Sonarr, with separate profile/root choices. Skip if you don't want TV or anime requests.</p>
+        <label for="sonarr-url">Sonarr URL</label>
+        <input type="url" id="sonarr-url" placeholder="http://192.168.1.50:8989" />
+        <label for="sonarr-key">Sonarr API key</label>
+        <input type="text" id="sonarr-key" placeholder="API key" />
+        <details class="help">
+          <summary>Where's my Sonarr API key?</summary>
+          <div class="help-body">Sonarr → <strong>Settings</strong> → <strong>General</strong> → <strong>Security</strong> section.</div>
+        </details>
+        <div class="result" id="result-sonarr"></div>
+
+        <div class="profile-picks" id="sonarr-picks">
+          <div class="section-title">TV (/tv)</div>
+          <label for="tv-profile">Quality profile</label>
+          <select id="tv-profile"></select>
+          <label for="tv-root">Root folder</label>
+          <select id="tv-root"></select>
+
+          <div class="section-title">Anime (/anime)</div>
+          <p class="field-hint" style="margin-top:-0.3rem;">Added with no automatic search — Nyaarr's own background scan (if you run it) takes over from here.</p>
+          <label for="anime-profile">Quality profile</label>
+          <select id="anime-profile"></select>
+          <label for="anime-root">Root folder</label>
+          <select id="anime-root"></select>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-ghost" data-back="3">Back</button>
+          <button class="btn btn-gold" id="btn-4-next">Test &amp; Continue</button>
+        </div>
+      </section>
+
+      <!-- Step 5: dry run + done -->
+      <section class="step" data-step="5">
+        <h2>Almost done</h2>
+        <p class="sub">One safety switch, then you're set.</p>
+        <div class="checkbox-row">
+          <input type="checkbox" id="dry-run" checked />
+          <label for="dry-run">Dry run — log what would be requested instead of actually adding it</label>
+        </div>
+        <p class="field-hint">Recommended while you try it out. Turn this off once you've confirmed a request or two look right — nothing gets added to Radarr/Sonarr until you do.</p>
+        <div class="result" id="result-5"></div>
+        <div class="actions">
+          <button class="btn btn-ghost" data-back="4">Back</button>
+          <button class="btn btn-gold" id="btn-5-next">Save &amp; Continue</button>
+        </div>
+      </section>
+
+      <!-- Step 6: Done -->
+      <section class="step" data-step="6">
+        <h2>All set!</h2>
+        <p class="sub">Here's what's configured. You can come back to <code>/setup</code> any time to change it.</p>
+        <div id="summary"></div>
+        <div class="actions">
+          <span></span>
+          <button class="btn btn-gold" id="btn-finish">Done</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const STEP_LABELS = ["Login", "Discord", "Radarr", "Sonarr", "Dry run", "Done"];
+  let currentStep = 1;
+  let authToken = null;
+  let editMode = false;
+  const state = { discord: false, radarr: false, sonarr: false };
+
+  function $(sel) { return document.querySelector(sel); }
+
+  function renderStepper() {
+    const el = $("#stepper");
+    el.style.display = "flex";
+    el.innerHTML = "";
+    STEP_LABELS.forEach((label, i) => {
+      const n = i + 1;
+      if (editMode && n === 1) return; // no admin-creation step once already set up
+      const dot = document.createElement("span");
+      dot.className = "step-dot" + (n === currentStep ? " active" : n < currentStep ? " done" : "") + (editMode ? " clickable" : "");
+      dot.textContent = (n < currentStep ? "✓ " : n + ". ") + label;
+      if (editMode) dot.addEventListener("click", () => goToStep(n));
+      el.appendChild(dot);
+    });
+  }
+
+  function goToStep(n) {
+    currentStep = n;
+    document.querySelectorAll(".step").forEach((s) => s.classList.toggle("active", Number(s.dataset.step) === n));
+    renderStepper();
+  }
+
+  document.querySelectorAll("[data-back]").forEach((btn) => {
+    btn.addEventListener("click", () => goToStep(Number(btn.dataset.back)));
+  });
+
+  async function api(path, { method = "GET", body, auth = true } = {}) {
+    const headers = { "Content-Type": "application/json" };
+    if (auth && authToken) headers["Authorization"] = "Basic " + authToken;
+    const res = await fetch(path, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+    let data = null;
+    try { data = await res.json(); } catch (e) { /* no body */ }
+    if (!res.ok) throw new Error((data && data.detail) || res.statusText || "Request failed");
+    return data;
+  }
+
+  function showResult(id, ok, message) {
+    const el = $("#result-" + id);
+    el.className = "result " + (ok ? "ok" : "err");
+    el.textContent = message;
+  }
+
+  function setBusy(btn, busy) {
+    btn.disabled = busy;
+    btn.dataset.label = btn.dataset.label || btn.textContent;
+    btn.textContent = busy ? "Working…" : btn.dataset.label;
+  }
+
+  // A secret field's saved value only gets sent if the user actually typed
+  // something new — the server can only ever show a masked hint back, so an
+  // untouched masked placeholder must never be interpreted as a real value.
+  function markOriginal(input) { input.dataset.original = input.value; }
+  function changedFrom(input) { return input.value !== (input.dataset.original || ""); }
+
+  function fillOptions(select, items, labelFn) {
+    select.innerHTML = items.map((it) => `<option value="${it.id}">${labelFn(it)}</option>`).join("");
+  }
+
+  // ---- Step 1: admin login (create) ----
+  $("#btn-1-next").addEventListener("click", async () => {
+    const btn = $("#btn-1-next");
+    const username = $("#admin-username").value.trim();
+    const password = $("#admin-password").value;
+    const confirm = $("#admin-password-confirm").value;
+    if (!username || password.length < 8) { showResult(1, false, "Username is required and password must be at least 8 characters."); return; }
+    if (password !== confirm) { showResult(1, false, "Passwords don't match."); return; }
+    setBusy(btn, true);
+    try {
+      await api("/api/setup/admin", { method: "POST", auth: false, body: { username, password } });
+      authToken = btoa(username + ":" + password);
+      showResult(1, true, "Login created.");
+      goToStep(2);
+    } catch (e) {
+      showResult(1, false, e.message);
+    } finally {
+      setBusy(btn, false);
+    }
+  });
+
+  // ---- Step 2: Discord ----
+  $("#btn-2-next").addEventListener("click", async () => {
+    const btn = $("#btn-2-next");
+    const token = $("#discord-token").value.trim();
+    const guild = $("#discord-guild").value.trim();
+    if (!changedFrom($("#discord-token")) && !state.discord) { showResult(2, false, "A bot token is required."); return; }
+    setBusy(btn, true);
+    try {
+      const update = { discord_guild_id: guild };
+      if (changedFrom($("#discord-token"))) {
+        const res = await api("/api/setup/test-discord", { method: "POST", body: { token } });
+        showResult(2, true, `Connected as ${res.username}.`);
+        update.discord_bot_token = token;
+      }
+      await api("/api/connections", { method: "POST", body: update });
+      state.discord = true;
+      setTimeout(() => goToStep(3), 400);
+    } catch (e) {
+      showResult(2, false, e.message);
+    } finally {
+      setBusy(btn, false);
+    }
+  });
+
+  // ---- Step 3: Radarr ----
+  $("#btn-3-next").addEventListener("click", async () => {
+    const btn = $("#btn-3-next");
+    const url = $("#radarr-url").value.trim().replace(/\/$/, "");
+    const apiKey = $("#radarr-key").value.trim();
+    if (!url) { goToStep(4); return; }
+    setBusy(btn, true);
+    try {
+      if (!$("#radarr-picks").classList.contains("show")) {
+        const res = await api("/api/setup/test-radarr", { method: "POST", body: { url, api_key: apiKey } });
+        fillOptions($("#movie-profile"), res.quality_profiles, (p) => p.name);
+        fillOptions($("#movie-root"), res.root_folders, (r) => r.path);
+        $("#radarr-picks").classList.add("show");
+        showResult("radarr", true, `Connected — Radarr v${res.version}. Pick your profile/root below, then continue.`);
+      } else {
+        await api("/api/connections", { method: "POST", body: { radarr_url: url, radarr_api_key: apiKey } });
+        await api("/api/settings", {
+          method: "POST",
+          body: {
+            movie_quality_profile_id: Number($("#movie-profile").value),
+            movie_root_folder: $("#movie-root").value,
+          },
+        });
+        state.radarr = true;
+        goToStep(4);
+      }
+    } catch (e) {
+      showResult("radarr", false, e.message);
+    } finally {
+      setBusy(btn, false);
+    }
+  });
+
+  // ---- Step 4: Sonarr (TV + anime) ----
+  $("#btn-4-next").addEventListener("click", async () => {
+    const btn = $("#btn-4-next");
+    const url = $("#sonarr-url").value.trim().replace(/\/$/, "");
+    const apiKey = $("#sonarr-key").value.trim();
+    if (!url) { goToStep(5); return; }
+    setBusy(btn, true);
+    try {
+      if (!$("#sonarr-picks").classList.contains("show")) {
+        const res = await api("/api/setup/test-sonarr", { method: "POST", body: { url, api_key: apiKey } });
+        fillOptions($("#tv-profile"), res.quality_profiles, (p) => p.name);
+        fillOptions($("#tv-root"), res.root_folders, (r) => r.path);
+        fillOptions($("#anime-profile"), res.quality_profiles, (p) => p.name);
+        fillOptions($("#anime-root"), res.root_folders, (r) => r.path);
+        $("#sonarr-picks").classList.add("show");
+        showResult("sonarr", true, `Connected — Sonarr v${res.version}. Pick your profiles/roots below, then continue.`);
+      } else {
+        await api("/api/connections", { method: "POST", body: { sonarr_url: url, sonarr_api_key: apiKey } });
+        await api("/api/settings", {
+          method: "POST",
+          body: {
+            tv_quality_profile_id: Number($("#tv-profile").value),
+            tv_root_folder: $("#tv-root").value,
+            anime_quality_profile_id: Number($("#anime-profile").value),
+            anime_root_folder: $("#anime-root").value,
+          },
+        });
+        state.sonarr = true;
+        goToStep(5);
+      }
+    } catch (e) {
+      showResult("sonarr", false, e.message);
+    } finally {
+      setBusy(btn, false);
+    }
+  });
+
+  // ---- Step 5: dry run ----
+  $("#btn-5-next").addEventListener("click", async () => {
+    const btn = $("#btn-5-next");
+    setBusy(btn, true);
+    try {
+      await api("/api/settings", { method: "POST", body: { dry_run: $("#dry-run").checked } });
+      buildSummary();
+      goToStep(6);
+    } catch (e) {
+      showResult(5, false, e.message);
+    } finally {
+      setBusy(btn, false);
+    }
+  });
+
+  function buildSummary() {
+    const rows = [
+      ["Admin login", true],
+      ["Discord bot", state.discord],
+      ["Radarr (/movie)", state.radarr],
+      ["Sonarr (/tv, /anime)", state.sonarr],
+      ["Dry run", $("#dry-run").checked],
+    ];
+    $("#summary").innerHTML = rows
+      .map(([label, ok]) => `<div class="summary-row"><span>${label}</span><span class="${ok ? "ok-tag" : "skip-tag"}">${ok ? (label === "Dry run" ? (ok ? "on" : "off") : "✓ configured") : "skipped"}</span></div>`)
+      .join("");
+  }
+
+  $("#btn-finish").addEventListener("click", () => { window.location.href = "/setup"; });
+
+  // ---- Edit-mode login ----
+  $("#btn-login").addEventListener("click", async () => {
+    const btn = $("#btn-login");
+    const username = $("#login-username").value.trim();
+    const password = $("#login-password").value;
+    setBusy(btn, true);
+    try {
+      authToken = btoa(username + ":" + password);
+      const [connections, settingsData] = await Promise.all([
+        api("/api/connections"),
+        api("/api/settings"),
+      ]);
+      $("#login-gate").style.display = "none";
+      editMode = true;
+      $("#tagline").textContent = "Editing settings — jump to any section below.";
+      prefill(connections, settingsData);
+      $("#steps-container").style.display = "block";
+      document.querySelector('.step[data-step="1"]').remove();
+      goToStep(2);
+    } catch (e) {
+      authToken = null;
+      showResult("login", false, "Invalid credentials.");
+    } finally {
+      setBusy(btn, false);
+    }
+  });
+
+  function prefillField(input, value) {
+    input.value = value || "";
+    markOriginal(input);
+  }
+
+  function prefill(connections, settingsData) {
+    prefillField($("#discord-guild"), connections.discord_guild_id.value);
+    if (connections.discord_bot_token.is_set) { $("#discord-token").placeholder = connections.discord_bot_token.value; state.discord = true; }
+    prefillField($("#radarr-url"), connections.radarr_url.value);
+    if (connections.radarr_api_key.is_set) { $("#radarr-key").placeholder = connections.radarr_api_key.value; state.radarr = true; }
+    prefillField($("#sonarr-url"), connections.sonarr_url.value);
+    if (connections.sonarr_api_key.is_set) { $("#sonarr-key").placeholder = connections.sonarr_api_key.value; state.sonarr = true; }
+    $("#dry-run").checked = !!settingsData.dry_run;
+  }
+
+  // ---- Boot ----
+  (async () => {
+    try {
+      const status = await api("/api/setup/status", { auth: false });
+      if (status.setup_complete) {
+        $("#login-gate").style.display = "block";
+        return;
+      }
+    } catch (e) { /* fall through to showing the first-run wizard anyway */ }
+    $("#steps-container").style.display = "block";
+    goToStep(1);
+  })();
+</script>
+</body>
+</html>
