@@ -351,7 +351,14 @@
   function changedFrom(input) { return input.value !== (input.dataset.original || ""); }
 
   function fillOptions(select, items, labelFn) {
-    select.innerHTML = items.map((it) => `<option value="${it.id}">${labelFn(it)}</option>`).join("");
+    // Built with DOM APIs (not innerHTML) so profile/folder names coming
+    // back from Sonarr/Radarr are always treated as text, never markup.
+    select.replaceChildren(...items.map((it) => {
+      const opt = document.createElement("option");
+      opt.value = it.id;
+      opt.textContent = labelFn(it);
+      return opt;
+    }));
   }
 
   // ---- Step 1: admin login (create) ----

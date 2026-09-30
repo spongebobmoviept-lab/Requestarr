@@ -1,9 +1,11 @@
 import asyncio
+import hmac
 import os
 from contextlib import asynccontextmanager
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from . import auth_store, bot, connections_store, job_store, monitor, radarr, settings_store, sonarr
@@ -40,12 +42,51 @@ async def lifespan(_: FastAPI):
         task.cancel()
 
 
-app = FastAPI(title="Requestarr", lifespan=lifespan)
+app = FastAPI(title="Requestarr", version="1.1.0", lifespan=lifespan)
 
 
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok"}
+
+
+_optional_basic = HTTPBasic(auto_error=False)
+
+
+def _authorize_active_downloads(request: Request, credentials: HTTPBasicCredentials | None) -> None:
+    """See the ACTIVE_DOWNLOADS_* settings in config.py for the rules."""
+    if settings.active_downloads_allow_unauthenticated:
+        return
+    supplied = request.headers.get("x-api-key", "")
+    expected = settings.active_downloads_api_key
+    if expected and supplied and hmac.compare_digest(supplied.encode(), expected.encode()):
+        return
+    if credentials is not None:
+        check_credentials(request, credentials)  # raises 401/429 on failure
+        return
+    raise HTTPException(
+        status_code=401,
+        detail="Authentication required",
+        headers={"WWW-Authenticate": "Basic"},
+    )
+
+
+@app.get("/api/jobs/active-downloads")
+async def active_downloads(request: Request, credentials: HTTPBasicCredentials | None = Depends(_optional_basic)) -> JSONResponse:
+    """Read-only list of requests that are currently downloading, so an
+    external helper (for example a download-queue prioritiser) can tell
+    which Sonarr/Radarr downloads trace back to a real person's request.
+    Deliberately minimal: kind, the Radarr movie id or Sonarr series id,
+    and the title.
+    No requester ids, Discord thread ids or anything else from the job.
+    """
+    _authorize_active_downloads(request, credentials)
+    jobs = [
+        {"kind": j.kind, "external_id": j.external_id, "title": j.title}
+        for j in job_store.store.active_jobs.values()
+        if j.status == "downloading"
+    ]
+    return JSONResponse({"active_downloads": jobs}, headers={"Cache-Control": "no-store"})
 
 
 @app.get("/favicon.svg")

@@ -17,7 +17,7 @@ Requestarr is a self-hosted Discord bot for requesting movies, TV shows, and ani
 - `/tv title:<text>` → adds to Sonarr as a normal series, searches immediately.
 - `/anime title:<text>` → adds to Sonarr tagged as anime, but does **not** trigger Sonarr's own search — if you also run [Nyaarr](https://github.com/spongebobmoviept-lab/Nyaarr), its background scan picks up the newly-added series and finds the right sub/dub release on its own next cycle instead of Sonarr grabbing the first (possibly wrong) result blind.
 
-Every command shows up to 5 candidates (poster, year, network/studio, status, language, and a clear "already in your library" flag) to pick from, then a full-detail confirm screen before anything is actually added — nothing gets added until you press Confirm.
+Every command shows up to 5 candidates (poster, year, network/studio, status, language, and a clear "already in your library" flag) to pick from, then a full-detail confirm screen before anything is actually added — nothing gets added until you press Confirm. Results are re-ranked by how closely they match what you typed, so a small typo or a missing "The" still puts the right title first; if nothing matches, the bot says so and suggests checking the spelling.
 
 ## Quick start
 
@@ -26,7 +26,9 @@ Every command shows up to 5 candidates (poster, year, network/studio, status, la
 ```bash
 git clone https://github.com/spongebobmoviept-lab/Requestarr.git
 cd Requestarr
-docker-compose up -d
+cp .env.example .env                        # optional overrides; the defaults work as-is
+mkdir -p data && sudo chown 1000:1000 data  # container runs as a non-root user
+docker compose up -d
 ```
 
 Open `http://<this-machine's-ip>:8787` and follow the setup wizard:
@@ -62,6 +64,20 @@ Everything below is set through the setup wizard or by revisiting `/setup` later
 | Max job duration | 6 hours | How long before giving up and posting "couldn't find anything" |
 | Dry run | on | Logs what would be added instead of actually calling Sonarr/Radarr |
 
+Two optional settings are set in `.env` only (see `.env.example`). They control the read-only `GET /api/jobs/active-downloads` endpoint, which lists requests that are currently downloading (`kind`, Radarr movie id or Sonarr series id, `title`; nothing about who asked). It's meant for an external helper, such as a script that keeps human requests at the front of your download client's queue.
+
+| Env variable | Default | What it does |
+|---|---|---|
+| `ACTIVE_DOWNLOADS_API_KEY` | empty | When set, a caller can read the endpoint by sending this value in an `X-Api-Key` header. Use a long random string. |
+| `ACTIVE_DOWNLOADS_ALLOW_UNAUTHENTICATED` | `false` | When `true`, anyone who can reach the port can read the endpoint with no auth (the pre-1.1 behaviour). Only for a trusted LAN. |
+
+With neither set, the endpoint needs the admin login (HTTP Basic), like the rest of the API.
+
+```bash
+curl -H "X-Api-Key: $ACTIVE_DOWNLOADS_API_KEY" http://<host>:8787/api/jobs/active-downloads
+# {"active_downloads": [{"kind": "movie", "external_id": 42, "title": "Some Movie"}]}
+```
+
 ## FAQ
 
 **What does dry run actually skip?**
@@ -78,7 +94,7 @@ No — anyone who can use slash commands in your server can request. There's no 
 
 ## Troubleshooting
 
-- **The container won't start / crashes immediately.** Check `docker-compose logs -f requestarr` — a common first-run cause is `./data` being created as root before the container's non-root user can write to it: `mkdir -p data && sudo chown 1000:1000 data`.
+- **The container won't start / crashes immediately.** Check `docker compose logs -f requestarr` — a common first-run cause is `./data` being created as root before the container's non-root user can write to it: `mkdir -p data && sudo chown 1000:1000 data`.
 - **The wizard's "Test & Continue" fails.** Double check the URL includes `http://` and the correct port, and that it's reachable *from inside the container* — `localhost` almost never works here, use the machine's real LAN IP.
 - **Slash commands aren't showing up in Discord.** Without a server (guild) ID, commands sync globally, which can take up to an hour. Add the guild ID in the wizard's Discord step for instant sync.
 - **Found a bug or want a feature?** Open an issue on this repo.
@@ -88,3 +104,22 @@ No — anyone who can use slash commands in your server can request. There's no 
 - One Python process, one container, no database, no build step.
 - Nothing gets added without an explicit Confirm click — ever.
 - Dry run exercises the entire real flow (search, picker, confirm) except the final write, so you can trust it before turning it off.
+
+## Security notes
+
+- **Keep the web UI on your LAN, not the open internet.** It uses HTTP Basic auth with a per-IP lockout after 10 failed attempts. Basic auth over plain HTTP sends the password in the clear, so for remote access put Requestarr behind a reverse proxy with HTTPS, or a VPN. The Discord bot itself needs no inbound port.
+- **First-run setup is open until you finish it.** Until an admin login exists, anyone who can reach port 8787 can create it. Complete the wizard right after first start.
+- **Unauthenticated endpoints:** only `/health` (returns `{"status": "ok"}`) and the setup pages. `/api/jobs/active-downloads` is authenticated by default; see the table above before opening it up.
+- **Secrets stay in `data/`.** The Discord bot token, API keys and your hashed admin login live in the `data/` volume, never in the image. `.env` is git-ignored; only `.env.example` is tracked. API keys and Discord webhook tokens are redacted from log lines.
+- **Anyone in your Discord server who can use slash commands can request.** Restrict the commands per role or channel in Discord's Server Settings → Integrations if you need to.
+- The container runs as a non-root user (uid 1000).
+
+## Changelog
+
+**1.1.0**
+- Search results are re-ranked by similarity to what was typed (typos, a missing "The", a different subtitle), and "no match" replies suggest checking the spelling.
+- New read-only `GET /api/jobs/active-downloads` endpoint for external helpers, authenticated by default, with optional `ACTIVE_DOWNLOADS_API_KEY` / `ACTIVE_DOWNLOADS_ALLOW_UNAUTHENTICATED` settings.
+- Security: Discord webhook tokens are redacted from logs; setup-wizard dropdowns treat Sonarr/Radarr names as text.
+- `.env` is now `.env.example` (copy it to `.env`); `.env` is git-ignored. Docker base image pinned to a specific Python patch release.
+
+**1.0.0**: first public release.

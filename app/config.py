@@ -24,7 +24,7 @@ class Settings:
         # No web UI/wizard for this app at all ("just a bot who listens") —
         # everything is env-configured. A blank token just means the bot
         # never logs in; main.py logs that clearly instead of crashing, so
-        # /health still comes up for Uptime Kuma while you finish setup.
+        # /health still comes up for your uptime monitor while you finish setup.
         self.discord_bot_token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
         # Optional — if set, slash commands sync to this one guild instantly
         # (seconds). Without it they still work, just via Discord's global
@@ -56,6 +56,18 @@ class Settings:
         self.max_job_duration_hours = _env_float("MAX_JOB_DURATION_HOURS", 6)
 
         self.dry_run = _env_bool("DRY_RUN", True)
+
+        # GET /api/jobs/active-downloads lists the requests that are
+        # currently downloading (kind, Radarr movie id or Sonarr series id, title), so an
+        # external helper such as a download-queue prioritiser can keep
+        # human requests at the front. Access rules, in order:
+        #   - ACTIVE_DOWNLOADS_API_KEY set: callers must send it in an
+        #     X-Api-Key header (the admin login also works);
+        #   - ACTIVE_DOWNLOADS_ALLOW_UNAUTHENTICATED=true: open to anyone who
+        #     can reach the port (the pre-1.1 behaviour, for trusted LANs);
+        #   - neither: only the admin login (HTTP Basic) can read it.
+        self.active_downloads_api_key = os.environ.get("ACTIVE_DOWNLOADS_API_KEY", "").strip()
+        self.active_downloads_allow_unauthenticated = _env_bool("ACTIVE_DOWNLOADS_ALLOW_UNAUTHENTICATED", False)
 
         self.app_port = _env_int("APP_PORT", 8787)
 

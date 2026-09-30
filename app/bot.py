@@ -3,6 +3,7 @@ two-step "narrow it down, then confirm" flow described in the plan. No
 account linking, no web UI — this is the whole interface.
 """
 
+import difflib
 from typing import Optional
 
 import discord
@@ -11,6 +12,28 @@ from discord import app_commands
 from . import job_store, matcher, radarr, sonarr
 from .config import settings
 from .logger import log
+
+
+def _similarity(query: str, title: str) -> float:
+    """How close a candidate's title textually is to what was actually
+    typed. Radarr/Sonarr's own lookup (TMDB/TVDB-backed) already tolerates
+    real typos reasonably well, but its result ORDER doesn't reliably put
+    the closest match first for a slightly-off query (a typo, a missing
+    "The", a different subtitle). Truncating to max_candidates before
+    looking at that would lose a good match further down the raw list.
+    """
+    return difflib.SequenceMatcher(None, (query or "").strip().lower(), (title or "").strip().lower()).ratio()
+
+
+def rank_by_similarity(query: str, results: list, anime_first: bool = False) -> list:
+    """Closest textual match to the query first. With anime_first, results
+    that look like anime come before the rest (never decided silently),
+    and similarity orders each group. The sort is stable, so ties keep the
+    lookup's own order."""
+    if anime_first:
+        return sorted(results, key=lambda s: (not s.looks_like_anime, -_similarity(query, s.title)))
+    return sorted(results, key=lambda s: _similarity(query, s.title), reverse=True)
+
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
@@ -167,9 +190,12 @@ class PickerView(discord.ui.View):
 
 async def _search_movie(interaction: discord.Interaction, title: str) -> None:
     await interaction.response.defer(ephemeral=True)
-    results = (await radarr.lookup_by_term(title))[: settings.max_candidates]
+    results = rank_by_similarity(title, await radarr.lookup_by_term(title))[: settings.max_candidates]
     if not results:
-        await interaction.followup.send(f"No movie matches found for '{title}'.", ephemeral=True)
+        await interaction.followup.send(
+            f"No movie matches found for '{title}' — it may not be released/tracked yet, or check the spelling and try again.",
+            ephemeral=True,
+        )
         return
 
     candidates = [matcher.from_movie(m) for m in results]
@@ -185,12 +211,13 @@ async def _search_movie(interaction: discord.Interaction, title: str) -> None:
 
 async def _search_series(interaction: discord.Interaction, title: str, kind: str) -> None:
     await interaction.response.defer(ephemeral=True)
-    results = await sonarr.lookup_by_term(title)
-    if kind == "anime":
-        results.sort(key=lambda s: not s.looks_like_anime)  # anime-looking results first, never decided silently
+    results = rank_by_similarity(title, await sonarr.lookup_by_term(title), anime_first=(kind == "anime"))
     results = results[: settings.max_candidates]
     if not results:
-        await interaction.followup.send(f"No show matches found for '{title}'.", ephemeral=True)
+        await interaction.followup.send(
+            f"No show matches found for '{title}' — it may not be released/tracked yet, or check the spelling and try again.",
+            ephemeral=True,
+        )
         return
 
     candidates = [matcher.from_series(s) for s in results]

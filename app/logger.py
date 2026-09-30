@@ -13,6 +13,9 @@ _lock = asyncio.Lock()
 
 _REDACT_PATTERNS = [
     (re.compile(r"([?&](?:api_?key|token)=)[^&\s'\"]+", re.IGNORECASE), r"\1***redacted***"),
+    # A Discord webhook URL is itself a credential (anyone holding it can
+    # post), and httpx puts it in the failure message of a failed send.
+    (re.compile(r"(discord(?:app)?\.com/api/webhooks/\d+/)[\w-]+", re.IGNORECASE), r"\1***redacted***"),
 ]
 
 
