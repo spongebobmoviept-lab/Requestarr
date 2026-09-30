@@ -128,3 +128,7 @@ No — anyone who can use slash commands in your server can request. There's no 
 - `.env` is now `.env.example` (copy it to `.env`); `.env` is git-ignored. Docker base image pinned to a specific Python patch release.
 
 **1.0.0**: first public release.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
